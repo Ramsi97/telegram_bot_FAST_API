@@ -2,17 +2,32 @@
 import fitz  # PyMuPDF
 from pathlib import Path
 
-def pdf_to_image(pdf_path: str | Path, output_dir: str | Path) -> Path:
-    """Convert PDF to image using PyMuPDF."""
+def pdf_to_image(pdf_path: str | Path, output_dir: str | Path, dpi: int = 400) -> Path:
+    """
+    Convert PDF to a high-resolution PNG using PyMuPDF.
+    :param pdf_path: Path to the PDF file
+    :param output_dir: Directory where the image will be stored
+    :param dpi: Desired output resolution (e.g. 200, 300, 400)
+    :return: Path to the generated image
+    """
     pdf_path = Path(pdf_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    pdf = fitz.open(pdf_path)  # ✅ Open directly from file path
+    # ✅ Open PDF
+    pdf = fitz.open(pdf_path)
     page = pdf.load_page(0)
-    pix = page.get_pixmap()
+
+    # 🧠 DPI → zoom factor (72 DPI is default)
+    zoom = dpi / 72
+    mat = fitz.Matrix(zoom, zoom)
+
+    # ✅ Render page to image with scaling
+    pix = page.get_pixmap(matrix=mat, alpha=False)
+
+    # ✅ Save as PNG (lossless)
     image_path = output_dir / f"{pdf_path.stem}_page1.png"
     pix.save(image_path)
-    pdf.close()
 
+    pdf.close()
     return image_path

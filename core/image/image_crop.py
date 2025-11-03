@@ -1,19 +1,17 @@
-# core/image/cropper.py
 import cv2
+import numpy as np
 from pathlib import Path
 from core.pdf.pdf_to_image_converter import pdf_to_image
 
-def crop_pdf_sections(pdf_path: Path, output_dir: Path):
+
+def crop_pdf_sections(pdf_path: Path, output_dir: Path, dpi: int = 400):
     """
-    Convert PDF to image, crop regions (photo, barcode, QR), and save them.
-    Returns a dict with cropped image paths.
+    Convert PDF to a high-resolution image, crop regions (photo, barcode, QR),
+    and return them as NumPy arrays (high quality, no saving).
     """
 
-    # Make sure output dir exists
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1️⃣ Convert PDF to image
-    image_path = pdf_to_image(pdf_path, output_dir)
+    # 1️⃣ Convert PDF to image at high DPI
+    image_path = pdf_to_image(pdf_path, output_dir, dpi=dpi)
 
     # 2️⃣ Load image using OpenCV
     img = cv2.imread(str(image_path))
@@ -21,46 +19,45 @@ def crop_pdf_sections(pdf_path: Path, output_dir: Path):
         raise ValueError(f"Image not found at {image_path}")
 
     # 3️⃣ Define crop coordinates (x1, y1, x2, y2)
-    photo_coords = (345, 93, 396, 160)
-    barcode_coords = (340, 225, 400, 245)
-    qrcode_coords = (325, 285, 420, 377)
+    photo_coords = (2445, 670, 2810, 1130)
+    barcode_coords = (2400, 1605, 2850, 1745)
+    qrcode_coords = (2290, 2000, 3000, 2700)
+    fin_code_coords = (2640, 2730, 3000, 2790)
+    # Adjust for DPI scaling if needed
+    base_dpi = 200
+    scale = dpi / base_dpi
 
-    # 4️⃣ Crop each section
-    photo = img[photo_coords[1]:photo_coords[3], photo_coords[0]:photo_coords[2]]
-    barcode = img[barcode_coords[1]:barcode_coords[3], barcode_coords[0]:barcode_coords[2]]
-    qrcode = img[qrcode_coords[1]:qrcode_coords[3], qrcode_coords[0]:qrcode_coords[2]]
 
-    # 5️⃣ Save each cropped image
-    photo_path = output_dir / "photo_crop.png"
-    barcode_path = output_dir / "barcode_crop.png"
-    qrcode_path = output_dir / "qrcode_crop.png"
 
-    cv2.imwrite(str(photo_path), photo)
-    cv2.imwrite(str(barcode_path), barcode)
-    cv2.imwrite(str(qrcode_path), qrcode)
+    # 3️⃣ Crop each section
+    def crop_section(coords):
+        x1, y1, x2, y2 = coords
+        return img[y1:y2, x1:x2]
 
-    # 6️⃣ (Optional) draw rectangles for visualization
-    cv2.rectangle(img, (445, 93), (496, 160), (0, 0, 255), 1)
-    cv2.rectangle(img, (340, 225), (400, 245), (0, 0, 255), 1)
-    cv2.rectangle(img, (325, 285), (420, 377), (0, 0, 255), 1)
+    photo = crop_section(photo_coords)
+    barcode = crop_section(barcode_coords)
+    qrcode = crop_section(qrcode_coords)
+    fin_code = crop_section(fin_code_coords)
+    
+    # 4️⃣ Optional enhancement for clarity
+    def enhance(img_section):
+        if img_section is None or img_section.size == 0:
+            return img_section
+        gaussian = cv2.GaussianBlur(img_section, (0, 0), 2)
+        return cv2.addWeighted(img_section, 1.5, gaussian, -0.5, 0)
 
-    marked_path = output_dir / "marked_image.png"
-    cv2.imwrite(str(marked_path), img)
+    photo = enhance(photo)
+    barcode = enhance(barcode)
+    qrcode = enhance(qrcode)
+    fin_code = enhance(fin_code)
 
-    print("✅ Cropped and saved:")
-    print(photo_path, barcode_path, qrcode_path, marked_path)
+
 
     return {
-        "photo": photo_path,
-        "barcode": barcode_path,
-        "qrcode": qrcode_path,
-        "marked": marked_path,
+        "photo": photo,
+        "barcode": barcode,
+        "qrcode": qrcode,
+        "fin_code": fin_code
     }
 
 
-# ✅ Corrected function call
-if __name__ == "__main__":
-    crop_pdf_sections(
-        Path("/home/ramsi/telegram_bot/pdf_file/efayda_Ahmed Gelgelu Dido.pdf"),
-        Path("/home/ramsi/telegram_bot/storage/images_produced")
-    )
