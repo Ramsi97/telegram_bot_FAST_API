@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
 from pathlib import Path
+from datetime import date, timedelta
 from core.image.image_crop import crop_pdf_sections
 from core.pdf.pdf_data_extractor import extract_user_data  # your OCR/text function
 
@@ -33,11 +34,39 @@ TEMPLATE_FIELDS = {
     "fan_code": {"type": "text", "coords": (626, 534), "lang": "en"},
 
     # Image fields
-    "photo": {"type": "image", "coords": (440, 120, 508, 208)},
-    "qr_code": {"type": "image", "coords": (410, 363, 538, 483)},
-    "fin_code": {"type": "image", "coords": (470, 492, 542, 502)},
-    "small_photo": {"type": "image", "coords": (1027, 507, 1112, 625)},
+    "photo": {"type": "image", "coords": (200, 183, 550, 660)},
+    "qrcode": {"type": "image", "coords": (1760, 65, 2300, 600)},
+    "fin_code": {"type": "image", "coords": (1310, 570, 1615, 610)},
+    "small_image": {"type": "image", "coords": (1027, 507, 1112, 625)},
+    "barcode": {"type": "image", "coords": (630, 540, 930, 627)}
 }
+
+def gregorian_to_ethiopian(g_y, g_m, g_d):
+    ethiopian_month_lengths = [30] * 12 + [5]
+    
+    new_year_offset = 11
+    
+    g = date(g_y, g_m, g_d)
+    
+    e_new_year = date(g_y, 9, new_year_offset)
+    if g < e_new_year:
+        e_new_year = date(g_y-1, 9, new_year_offset)
+        e_year = g_y - 1 - 7
+    else:
+        e_year = g_y - 7
+    
+    delta = (g - e_new_year).days
+    for m_idx, ml in enumerate(ethiopian_month_lengths):
+        if delta < ml:
+            e_month = m_idx + 1
+            e_day = delta + 1
+            break
+        delta -= ml
+    else:
+        e_month = 13
+        e_day = delta + 1
+    
+    return e_year, e_month, e_day
 
 def draw_bold_text(draw: ImageDraw.Draw, position, text, font, fill=(0, 0, 0), boldness=1):
     """Draw text in bold by overlaying the same text slightly offset."""
@@ -45,6 +74,27 @@ def draw_bold_text(draw: ImageDraw.Draw, position, text, font, fill=(0, 0, 0), b
     for dx in range(boldness + 1):
         for dy in range(boldness + 1):
             draw.text((x + dx, y + dy), text, font=font, fill=fill)
+
+def draw_vertical_text(base_img, position, text, font_path, font_size=23, fill=(0, 0, 0), boldness=1):
+    """Draw vertical upward text (rotated 90° counterclockwise) at the given position, bold and small."""
+    # Create font
+    font = ImageFont.truetype(font_path, font_size)
+
+    # Create a temporary transparent image for the text
+    text_img = Image.new("RGBA", (400, 80), (255, 255, 255, 0))
+    text_draw = ImageDraw.Draw(text_img)
+
+    # Draw bold text by layering
+    for dx in range(boldness + 1):
+        for dy in range(boldness + 1):
+            text_draw.text((dx, dy), text, font=font, fill=fill)
+
+    # Rotate upward (90° counterclockwise)
+    rotated = text_img.rotate(90, expand=1)
+
+    # Paste it upward from the given (x, y) position
+    x, y = position
+    base_img.paste(rotated, (x, y - rotated.height), rotated)
 
 
 def generate_final_id_image(
@@ -71,27 +121,7 @@ def generate_final_id_image(
     img_pil = Image.fromarray(cv2.cvtColor(template_img, cv2.COLOR_BGR2RGB))
     draw = ImageDraw.Draw(img_pil)
 
-    
-    height, width = template_img.shape[:2]
 
-    # Draw vertical lines every 100 pixels
-    # for x in range(0, width, 100):
-    #     cv2.line(template_img, (x, 0), (x, height), (0, 0, 255), 2)  # Red lines
-
-    # # Draw horizontal lines every 100 pixels
-    # for y in range(0, height, 100):
-    #     cv2.line(template_img, (0, y), (width, y), (255, 0, 0), 2)
-    # Load Amharic font
-
-    cv2.rectangle(template_img, (200, 183), (550, 655), (0, 0, 0), 2)
-    cv2.rectangle(template_img, (630, 540), (930, 627), (0, 0, 0), 2)
-    cv2.rectangle(template_img, (1760, 65), (2300, 600), (0, 0, 0), 2)
-    cv2.rectangle(template_img, (1025, 500), (1115, 625), (0, 0, 0), 2)
-    cv2.rectangle(template_img, (1310, 570), (1615, 610), (0, 0, 0), 2)
-    
-
-    png_params = [cv2.IMWRITE_PNG_COMPRESSION, 0]
-    cv2.imwrite("/home/ramsi/telegram_bot/storage/photo.png",  template_img, png_params)
     try:
         font_am = ImageFont.truetype(font_amharic, font_size)
     except Exception as e:
@@ -105,6 +135,14 @@ def generate_final_id_image(
         print(f"Warning: English font not found or failed to load ({e}). Using Amharic font.")
         font_en = font_am # Fallback to the Amharic font if English fails
 
+    today = date.today()
+    e_year, e_month, e_day = gregorian_to_ethiopian(today.year, today.month, today.day)
+    date_of_issue_greg = f"{today.day:02d}/{today.month:02d}/{today.year}"
+    date_of_issue_eth = f"{e_day:02d}/{e_month:02d}/{e_year}"
+    expiry_eth_date = f"{e_day:02d}/{e_month:02d}/{e_year+8}"
+    expiry_date_greg = f"{today.day:02d}/{today.month:02d}/{today.year+8}"
+
+    text_data["expiry_date"] = f"{expiry_eth_date} | {expiry_date_greg}"
     # 4️⃣ Draw text fields
     for key, field in TEMPLATE_FIELDS.items():
         if field["type"] != "text" or key not in text_data:
@@ -170,12 +208,34 @@ def generate_final_id_image(
         target_w, target_h = x2 - x1, y2 - y1
 
         # Resize with aspect ratio
-        pil_crop.thumbnail((target_w, target_h), Image.Resampling.LANCZOS)
+        pil_crop = pil_crop.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
 
         # Center in box
         paste_x = x1 + (target_w - pil_crop.width) // 2
         paste_y = y1 + (target_h - pil_crop.height) // 2
         img_pil.paste(pil_crop, (paste_x, paste_y))
+
+    
+    draw_vertical_text(
+        img_pil,
+        position=(155, 275),
+        text=date_of_issue_greg,
+        font_path=font_english,
+        font_size=22,
+        fill=(0, 0, 0),
+        boldness=1
+    )
+
+    draw_vertical_text(
+        img_pil,
+        position=(155, 550),
+        text=date_of_issue_eth,
+        font_path=font_english,
+        font_size=22,
+        fill=(0, 0, 0),
+        boldness=1
+    )
 
     # 6️⃣ Convert back to OpenCV and encode as PNG bytes
     final_img = cv2.cvtColor(np.array(img_pil), cv2.COLOR_RGB2BGR)

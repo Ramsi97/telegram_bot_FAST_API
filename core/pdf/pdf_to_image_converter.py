@@ -3,13 +3,7 @@ import fitz  # PyMuPDF
 from pathlib import Path
 
 def pdf_to_image(pdf_path: str | Path, output_dir: str | Path, dpi: int = 400) -> Path:
-    """
-    Convert PDF to a high-resolution PNG using PyMuPDF.
-    :param pdf_path: Path to the PDF file
-    :param output_dir: Directory where the image will be stored
-    :param dpi: Desired output resolution (e.g. 200, 300, 400)
-    :return: Path to the generated image
-    """
+    
     pdf_path = Path(pdf_path)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

@@ -57,7 +57,8 @@ def crop_pdf_sections(pdf_path: Path, output_dir: Path, dpi: int = 400):
         "photo": photo,
         "barcode": barcode,
         "qrcode": qrcode,
-        "fin_code": fin_code
+        "fin_code": fin_code,
+        "small_image":photo
     }
 
 
