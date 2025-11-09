@@ -42,7 +42,31 @@ async def telegram_webhook(
             if text.startswith("/start"):
                 await telegram.send_message(
                     chat_id, 
-                    "Welcome! Send me a PDF file and I'll convert it to an image."
+                    """Welcome to the National ID Fayda Printable Converter Service! 🎉
+
+🪪 To get your printable ID card:
+1. Visit the official Fayda website:
+resident.fayda.et/PrintableCredential (https://resident.fayda.et/)
+2. Enter your FCN/FAN and verify using the SMS OTP you receive.
+3. Tap Download Printable Credential and download your PDF file.
+4. Send the downloaded PDF file here to this bot.
+
+🤖 The bot will automatically convert your PDF into a print-ready National ID card.
+━━━━━━━━━━━━━━━━━━━━━━━
+
+እንኳን ወደ ብሔራዊ መታወቂያ ፋይዳ ካርድ ሊታተም የሚችል መቀየሪያ አገልግሎት በደህና መጡ! 🎉
+
+🪪 ሊታተም የሚችል መታወቂያ ካርድዎን ለማግኘት፡-
+1. በመጀመሪያ የፋይዳ ድረ-ገጽ ይጎብኙ፡-
+resident.fayda.et/PrintableCredential (https://resident.fayda.et/)
+
+2. የእርስዎን FCN/FAN ያስገቡ እና የሚቀበሉትን SMS OTP በመጠቀም ያረጋግጡ።
+
+3. Download Printable Credential የሚለውን ይጫኑ እና የፒዲኤፍ ፋይልዎን ያውርዱ።
+
+4. የወረደውን ፒዲኤፍ ፋይል ቀጥታ ወደዚህ ቦት ይላኩ።
+
+🤖 ቦቱ በራሱ ፒዲኤፍዎን ለህትመት ዝግጁ ወደሆነ ብሄራዊ መታወቂያ ካርድ ለውጦ ይልክልዎታል።"""
                 )
             else:
                 await telegram.send_message(

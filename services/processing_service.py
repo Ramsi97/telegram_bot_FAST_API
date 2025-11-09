@@ -1,78 +1,76 @@
 from services.telegram_service import TelegramService
 from core.image.image_generator import generate_final_id_image
-from core.pdf.extractor import get_pdf_metadata  
-from typing import Optional
+from core.pdf.extractor import get_pdf_metadata
 from pathlib import Path
 import tempfile
+import magic
 
 class ProcessingService:
     def __init__(self, telegram_service: TelegramService):
         self.telegram = telegram_service
 
     async def process_pdf_from_telegram(self, file_id: str, chat_id: int) -> bool:
-        """
-        Main processing pipeline:
-        1. Download PDF from Telegram
-        2. Validate PDF has exactly 1 page
-        3. Process PDF using your ID card generator
-        4. Send generated ID card image back to user
-        """
         try:
-            # Step 1: Download PDF
-            await self.telegram.send_message(chat_id, "📥 Downloading your PDF...")
+            # Step 1: Send initial message and keep its ID
+            message_id = await self.telegram.send_message(chat_id, "📥 Downloading your PDF...")
+
+            # Step 2: Download PDF
             pdf_bytes = await self.telegram.download_file(file_id)
-            
-            # Step 2: Validate PDF page count
-            metadata = get_pdf_metadata(pdf_bytes)  # ✅ Use correct function
-            page_count = metadata.get("page_count", 1)
-            
-            # ✅ Validate single page requirement
-            if page_count != 1:
-                await self.telegram.send_message(
+            await self.telegram.edit_message(chat_id, message_id, "🧩 Checking file type...")
+
+            # Step 3️⃣: Validate file type (must be a PDF)
+            file_type = magic.from_buffer(pdf_bytes, mime=True)
+            if file_type != "application/pdf":
+                await self.telegram.edit_message(
                     chat_id,
-                    f"❌ Invalid PDF: This PDF has {page_count} pages.\n\n"
-                    "Please send a **single-page PDF** document. "
-                    "Multi-page documents are not supported."
+                    message_id,
+                    f"❌ The uploaded file is not a PDF.\n"
+                    f"Detected type: `{file_type}`.\n\n"
+                    "Please send a **single-page PDF** file instead."
                 )
                 return False
-            
-            await self.telegram.send_message(
-                chat_id, 
-                "✅ Valid single-page PDF detected. Generating ID card..."
-            )
-            
-            # Step 3: Process with your ID card generator
+            await self.telegram.edit_message(chat_id, message_id, "📄 Validating PDF...")
+
+            # Step 3: Validate PDF
+            metadata = get_pdf_metadata(pdf_bytes)
+            page_count = metadata.get("page_count", 1)
+
+            if page_count != 1:
+                await self.telegram.edit_message(
+                    chat_id, message_id,
+                    f"❌ Invalid PDF: Found {page_count} pages.\nPlease send a single-page document."
+                )
+                return False
+
+            await self.telegram.edit_message(chat_id, message_id, "✅ Valid PDF detected. Processing...")
+
+            # Step 4: Process PDF
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_path = Path(temp_dir)
-                
-                # Save PDF to temporary file (your function expects file paths)
                 pdf_file = temp_path / "input.pdf"
-                with open(pdf_file, "wb") as f:
-                    f.write(pdf_bytes)
-                
-                # Create output directory for your function
+                pdf_file.write_bytes(pdf_bytes)
+
                 output_dir = temp_path / "output"
                 output_dir.mkdir(exist_ok=True)
-                
-                # ✅ Call your function with correct parameters
-                await self.telegram.send_message(chat_id, "🔄 Processing PDF and generating ID card...")
+
+                await self.telegram.edit_message(chat_id, message_id, "🔄 Generating your ID card...")
                 image_bytes = generate_final_id_image(
-                    pdf_path=pdf_file,           # ✅ Path object
-                    output_dir=output_dir,       # ✅ Path object  
+                    pdf_path=pdf_file,
+                    output_dir=output_dir,
                     font_amharic="/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
                     font_english="/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
                     font_size=24,
                     boldness=1
                 )
-            
-            # Step 4: Send the generated ID card
-            await self.telegram.send_message(chat_id, "📤 Sending your ID card...")
+
+            # Step 5: Send the image
+            await self.telegram.edit_message(chat_id, message_id, "📤 Uploading your ID card...")
             await self.telegram.send_photo_bytes(chat_id, image_bytes, "id_card.png")
-            
-            await self.telegram.send_message(chat_id, "✅ ID card generation complete!")
+
+            # Step 6: Final success
+            await self.telegram.edit_message(chat_id, message_id, "✅ ID card generation complete!")
             return True
-            
+
         except Exception as e:
-            error_msg = f"❌ Error generating ID card: {str(e)}"
-            await self.telegram.send_message(chat_id, error_msg)
+            await self.telegram.edit_message(chat_id, message_id, f"❌ Error: {str(e)}")
             return False
