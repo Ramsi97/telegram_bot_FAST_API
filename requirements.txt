@@ -4,7 +4,7 @@ httpx==0.25.2
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-multipart==0.0.6
-PyMuPDF==1.23.8
+PyMuPDF==1.26.6
 Pillow>=10.4
 python-dotenv==1.0.0
 opencv-python
