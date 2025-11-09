@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends, BackgroundTasks, HTTPException
 from services.telegram_service import TelegramService
 from services.processing_service import ProcessingService
 from app.dependencies import get_telegram_service, get_processing_service
-
+from app.config import settings
 router = APIRouter(tags=["telegram"])
 
 @router.post("/webhook")
@@ -16,10 +16,25 @@ async def telegram_webhook(
         update = await request.json()
         message = update.get("message", {})
         chat_id = message.get("chat", {}).get("id")
+        user_id = message.get("from", {}).get("id")
+
         
         if not chat_id:
             return {"status": "error", "message": "No chat ID found"}
-        
+
+        authorized_ids = [
+            int(uid.strip()) for uid in settings.AUTHORIZED_USER_IDS.split(",") if uid.strip()
+        ]
+
+        if user_id not in authorized_ids:
+            print(f"🚫 Unauthorized user: {user_id}")
+            await telegram.send_message(
+                chat_id,
+                "❌ Sorry, this bot is for paid users only.\n"
+                "Please contact support to get access."
+            )
+            return {"status": "unauthorized"}
+            
         # Handle PDF document
         if "document" in message:
             document = message["document"]
