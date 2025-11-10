@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxml2-dev \
     libxslt1-dev \
-    openjdk-11-jre-headless \
+    default-jre-headless \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
