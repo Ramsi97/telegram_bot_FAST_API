@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import date
 from io import BytesIO
 
+from app.config import BASE_DIR
 from core.image.image_crop import crop_pdf_sections
 from core.pdf.pdf_data_extractor import extract_user_data  # Your OCR/text extraction function
 
@@ -14,7 +15,8 @@ from core.pdf.pdf_data_extractor import extract_user_data  # Your OCR/text extra
 FONT_AMHARIC_DEFAULT = "/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf"
 FONT_ENGLISH_DEFAULT = "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"
 
-TEMPLATE_PATH = Path("/home/ramsi/telegram_bot/data/templates/modified_id_high_quality.jpg")
+TEMPLATES_DIR = BASE_DIR / "data" / "templates"
+TEMPLATE_PATH = TEMPLATES_DIR / "modified_id_high_quality.jpg"
 
 TEMPLATE_FIELDS = {
     # Amharic Fields
