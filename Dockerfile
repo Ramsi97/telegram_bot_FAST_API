@@ -15,6 +15,10 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libxslt1-dev \
     default-jre-headless \
+    fonts-dejavu \
+    fonts-liberation \
+    fonts-noto \
+    fonts-freefont-otf \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
