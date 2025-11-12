@@ -59,7 +59,7 @@ class ProcessingService:
                     output_dir=output_dir,
                     font_amharic="/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
                     font_english="/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-                    font_size=24,
+                    font_size=27,
                     boldness=1
                 )
 
