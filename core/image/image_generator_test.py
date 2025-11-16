@@ -1,7 +1,7 @@
 from pathlib import Path
 from core.image.image_generator import generate_final_id_image
 
-pdf_path = Path("/home/ramsi/telegram_bot/pdf_file/reme.pdf")
+pdf_path = Path("/home/ramsi/telegram_bot/storage/uploads/gebre.pdf")
 output_dir = Path("/home/ramsi/telegram_bot/storage/temp")
 
 final_bytes = generate_final_id_image(pdf_path, output_dir)

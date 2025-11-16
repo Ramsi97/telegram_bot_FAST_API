@@ -12,7 +12,7 @@ from core.pdf.pdf_data_extractor import extract_user_data  # Your OCR/text extra
 # ======================
 # 🔹 Constants and Paths
 # ======================
-FONT_AMHARIC_DEFAULT = "./fonts/truetype/noto/NotoSansEthiopic-Regular.ttf"
+FONT_AMHARIC_DEFAULT = "/usr/local/share/fonts/AbyssinicaSIL-Regular.ttf"
 FONT_ENGLISH_DEFAULT = "./fonts/truetype/noto/NotoSans-Regular.ttf"
 
 TEMPLATES_DIR = BASE_DIR / "data" / "templates"

@@ -57,8 +57,8 @@ class ProcessingService:
                 image_bytes = generate_final_id_image(
                     pdf_path=pdf_file,
                     output_dir=output_dir,
-                    font_amharic="/usr/share/fonts/truetype/noto/NotoSansEthiopic-Regular.ttf",
-                    font_english="/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                    font_amharic="./fonts/truetype/abyssinica/AbyssinicaSIL-Regular.ttf",
+                    font_english="./fonts/truetype/noto/NotoSans-Regular.ttf",
                     font_size=27,
                     boldness=1
                 )
